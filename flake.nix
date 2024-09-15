@@ -1,5 +1,12 @@
 {
-  inputs.flake.url = "https://flakehub.com/f/DeterminateSystems/flake-schemas/*";
+  inputs = {
+    # The systems to evaluate the flake outputs on
+    systems.url = "github:nix-systems/default";
+    # The flake to inspect outputs of
+    flake = { };
+    # Default flake-schemas
+    flake-schemas = { };
+  };
   outputs = inputs:
     let
       getFlakeOutputs = flake: includeOutputPaths:
@@ -14,16 +21,13 @@
             in if res.success then res.value else default;
 
           mkChildren = children: { inherit children; };
-
-          flakeSchemasFlakePinned = "https://api.flakehub.com/f/pinned/DeterminateSystems/flake-schemas/0.1.4/0190e653-dd76-70bd-ba6e-a3f5eaf3d415/source.tar.gz?narHash=sha256-efoDF3VaZHpcwFd2Y1axGLqNX/ou9kDL7z9mWNqzv9w%3D";
         in
 
         rec {
 
           allSchemas = (flake.outputs.schemas or defaultSchemas) // schemaOverrides;
 
-          # FIXME: make this configurable
-          defaultSchemas = (builtins.getFlake flakeSchemasFlakePinned).schemas;
+          defaultSchemas = inputs.flake-schemas.schemas;
 
           # Ignore legacyPackages for now, since it's very big and throws uncatchable errors.
           schemaOverrides.legacyPackages = {
@@ -102,11 +106,13 @@
               )
               schemas;
 
-          inventoryForSystem = system: inventoryFor (itemSet:
+          inventoryForSystems = systems: inventoryFor (itemSet:
             !itemSet ? forSystems
-            || builtins.any (x: x == system) itemSet.forSystems);
+            || itemSet ? evalOnAllSystems
+            || builtins.any (system: builtins.elem system itemSet.forSystems) systems);
 
-          inventory = inventoryFor (x: true);
+          inventory = inventoryForSystems (import inputs.systems);
+          # inventory = inventoryFor (x: true);
 
           contents = {
             version = 1;

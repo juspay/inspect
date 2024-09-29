@@ -71,6 +71,7 @@
                           forSystems = attrs.forSystems or null;
                           shortDescription = attrs.shortDescription or null;
                           what = attrs.what or null;
+                          value = attrs.value or null;
                           #evalChecks = attrs.evalChecks or {};
                         } // (
                           if includeOutputPaths then
